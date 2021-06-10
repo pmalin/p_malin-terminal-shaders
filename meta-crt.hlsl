@@ -1,3 +1,23 @@
+// Windows terminal version of
+// Meta CRT - @P_Malin
+// https://www.shadertoy.com/view/4dlyWX#
+
+
+Texture2D shaderTexture;
+SamplerState samplerState;
+
+// Terminal settings such as the resolution of the texture
+cbuffer PixelShaderSettings {
+  // The number of seconds since the pixel shader was enabled
+  float  Time;
+  // UI Scale
+  float  Scale;
+  // Resolution of the shaderTexture
+  float2 Resolution;
+  // Background color as rgba
+  float4 Background;
+};
+
 
 #define mix lerp
 #define vec2 float2
@@ -8,7 +28,6 @@
 
 // Meta CRT - @P_Malin
 // https://www.shadertoy.com/view/4dlyWX#
-// In which I add and remove aliasing
 
 
 #define PI 3.141592654
@@ -441,12 +460,12 @@ vec3 Bayer( vec2 vUV, vec2 vBlur )
 
 vec3 GetPixelMatrix( vec2 vUV )
 {
-#if 0
-    vec2 dx = dFdx( vUV );
-    vec2 dy = dFdy( vUV );
+#if 1
+    vec2 dx = ddx( vUV );
+    vec2 dy = ddy( vUV );
     float dU = length( vec2( dx.x, dy.x ) );
     float dV = length( vec2( dx.y, dy.y ) );
-    if (dU <= 0.0 || dV <= 0.0 ) return vec3(1.0);
+    if (dU <= 0.0 || dV <= 0.0 ) return vec3(1.0,1.0,1.0);
     return Bayer( vUV, vec2(dU, dV) * 1.0);
 #else
     return vec3(1.0,1.0,1.0);
@@ -462,10 +481,10 @@ float Scanline( float y, float fBlur )
 
 float GetScanline( vec2 vUV )
 {
-#if 0
+#if 1
     vUV.y *= 0.25;
-    vec2 dx = dFdx( vUV );
-    vec2 dy = dFdy( vUV );
+    vec2 dx = ddx( vUV );
+    vec2 dy = ddy( vUV );
     float dV = length( vec2( dx.y, dy.y ) );
     if (dV <= 0.0 ) return 1.0;
     return Scanline( vUV.y, dV * 1.3 );
@@ -510,7 +529,7 @@ float InterferenceNoise( vec2 uv )
 	float displayVerticalLines = 483.0;
     float scanLine = floor(uv.y * displayVerticalLines); 
     float scanPos = scanLine + uv.x;
-	float timeSeed = fract( iTime * 123.78 );
+	float timeSeed = fract( Time * 123.78 );
     
     return InterferenceSmoothNoise1D( scanPos * 234.5 + timeSeed * 12345.6 );
 }
@@ -520,7 +539,7 @@ Interference GetInterference( vec2 vUV )
     Interference interference;
         
     interference.noise = InterferenceNoise( vUV );
-    interference.scanLineRandom = InterferenceHash(vUV.y * 100.0 + fract(iTime * 1234.0) * 12345.0);
+    interference.scanLineRandom = InterferenceHash(vUV.y * 100.0 + fract(Time * 1234.0) * 12345.0);
     
     return interference;
 }
@@ -547,7 +566,8 @@ vec3 SampleScreen( vec3 vUVW )
     //vTextureUV.x += (interference.scanLineRandom * 2.0f - 1.0f) * 0.025f * noiseIntensity;
     
     
-    vec3 vPixelEmissive = vec3(0,0,0);// textureLod( iChannel0, vTextureUV.xy, 0.0 ).rgb;
+    vTextureUV.y = 1.0f - vTextureUV.y;
+    vec3 vPixelEmissive = shaderTexture.Sample(samplerState, vTextureUV); //vec3(0,0,0);// textureLod( iChannel0, vTextureUV.xy, 0.0 ).rgb;
         
     vPixelEmissive = clamp( vPixelEmissive + (interference.noise - 0.5) * 2.0 * noiseIntensity, 0.0, 1.0 );
     
@@ -902,7 +922,7 @@ void Cam_GetCameraRay( vec2 vUV, vec2 res, CameraState cam, out vec3 vRayOrigin,
     vec2 vView = Cam_GetViewCoordFromUV( vUV, res );
     vRayOrigin = cam.vPos;
     float fPerspDist = 1.0 / tan( radians( cam.fFov ) );
-    vRayDir = normalize( mul( Cam_GetWorldToCameraRotMatrix( cam ), vec3( vView, fPerspDist ) ) );
+    vRayDir = normalize( mul( vec3( vView, fPerspDist ), Cam_GetWorldToCameraRotMatrix( cam ) ) );
 }
 
 vec2 Cam_GetUVFromWindowCoord( vec2 vWindow, vec2 res )
@@ -918,7 +938,7 @@ vec2 Cam_WorldToWindowCoord(const in vec3 vWorldPos, const in CameraState camera
     vec3 vOffset = vWorldPos - cameraState.vPos;
     vec3 vCameraLocal;
 
-    vCameraLocal =mul( vOffset, Cam_GetWorldToCameraRotMatrix( cameraState ) );
+    vCameraLocal =mul( Cam_GetWorldToCameraRotMatrix( cameraState ), vOffset );
 	
     vec2 vWindowPos = vCameraLocal.xy / (vCameraLocal.z * tan( radians( cameraState.fFov ) ));
     
@@ -1054,7 +1074,7 @@ float GetVignetting( const in vec2 vUV, float fScale, float fPower, float fStren
 
 void mainImage( out vec4 vFragColor, in vec2 vFragCoord )
 {
-    vec2 vUV = vFragCoord.xy / iResolution.xy; 
+    vec2 vUV = vFragCoord.xy / Resolution.xy; 
 
     CameraState cam;
     
@@ -1062,7 +1082,7 @@ void mainImage( out vec4 vFragColor, in vec2 vFragCoord )
     	CameraState camA;
     	CameraState camB;
     
-        float fSeqTime = iTime;
+        float fSeqTime = Time;
         float fSequenceSegLength = 5.0;
         float fSeqIndex = floor(fSeqTime / fSequenceSegLength);
         float fSeqPos = fract(fSeqTime / fSequenceSegLength);
@@ -1111,15 +1131,15 @@ void mainImage( out vec4 vFragColor, in vec2 vFragCoord )
 #endif
     
 #ifdef ENABLE_TAA_JITTER
-    cam.vJitter = hash21( fract( iTime ) ) - 0.5f;
+    cam.vJitter = hash21( fract( Time ) ) - 0.5f;
 #else
     cam.vJitter = vec2(0,0);
 #endif
     
             
     vec3 vRayOrigin, vRayDir;
-    vec2 vJitterUV = vUV + cam.vJitter / iResolution.xy;
-    Cam_GetCameraRay( vJitterUV, iResolution.xy, cam, vRayOrigin, vRayDir );
+    vec2 vJitterUV = vUV + cam.vJitter / Resolution.xy;
+    Cam_GetCameraRay( vJitterUV, Resolution.xy, cam, vRayOrigin, vRayDir );
  
     float fHitDist = 0.0f;
     vFragColor = MainCommon( vRayOrigin, vRayDir );
@@ -1129,4 +1149,25 @@ void mainImage( out vec4 vFragColor, in vec2 vFragCoord )
     vFragColor.rgb *= fShade;
     
     vFragColor.rgb = Tonemap( vFragColor.rgb );        
+}
+
+
+// Shim main to call shadertoy mainImage and composite terminal text
+
+float4 main(float4 pos : SV_POSITION, float2 tex : TEXCOORD) : SV_TARGET
+{
+    float4 result;
+
+    float2 uv = tex;
+    uv.y = 1.0 - uv.y;
+
+    mainImage( result, uv * Resolution );
+
+    float4 shadowCol = shaderTexture.Sample(samplerState, tex-(1.0/320.0));
+    result.rgb = lerp( result.rgb, float3(0,0,0), shadowCol.a );
+
+    float4 color = shaderTexture.Sample(samplerState, tex);
+    result.rgb = lerp( result.rgb, color.rgb, color.a );
+
+    return result;
 }
