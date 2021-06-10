@@ -3,6 +3,7 @@
 Silly Shadertoy Shaders I've hacked to work in Windows Terminal
 
 Probably bad for your GPU - use at your own risk
+Resizing the terminal window may recompile the shaders so, er, that may be slow.
 
 ## Usage
 
