@@ -2,8 +2,27 @@
 
 Silly Shadertoy Shaders I've hacked to work in Windows Terminal
 
-Probably bad for your GPU - use at your own risk
+Probably bad for your GPU - use at your own risk.
+
+Resizing the terminal window may recompile the shaders so, er, that may be slow.
+
+## Usage
 
 * Checkout the repository
 * Set `experimental.pixelShaderPath` in your terminal config settings to the shader path
 * Hear you GPU fan cry
+
+
+## Example profile section in settings.json
+```
+    "profiles":
+    {
+      "defaults": {
+        // Put settings here that you want to apply to all profiles.
+        "experimental.pixelShaderPath": "C:\\gitrepo\\p_malin-terminal-shaders\\e1m1.hlsl"    
+      },
+```
+
+Some of the information about how to do this and some .hlsl shader stub code came from here:
+
+https://github.com/microsoft/terminal/tree/main/samples/PixelShaders
