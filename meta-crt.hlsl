@@ -2,7 +2,7 @@
 // Meta CRT - @P_Malin
 // https://www.shadertoy.com/view/4dlyWX#
 
-#define NO_OVERLAY
+//#define NO_OVERLAY
 
 //#define LIMIT_RESOLUTION    
 
