@@ -22,3 +22,7 @@ Resizing the terminal window may recompile the shaders so, er, that may be slow.
         "experimental.pixelShaderPath": "C:\\gitrepo\\p_malin-terminal-shaders\\e1m1.hlsl"    
       },
 ```
+
+Some of the information about how to do this and some .hlsl shader stub code came from here:
+
+https://github.com/microsoft/terminal/tree/main/samples/PixelShaders
