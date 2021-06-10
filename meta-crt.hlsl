@@ -2,6 +2,9 @@
 // Meta CRT - @P_Malin
 // https://www.shadertoy.com/view/4dlyWX#
 
+#define NO_OVERLAY
+
+//#define LIMIT_RESOLUTION    
 
 Texture2D shaderTexture;
 SamplerState samplerState;
@@ -17,6 +20,7 @@ cbuffer PixelShaderSettings {
   // Background color as rgba
   float4 Background;
 };
+
 
 
 #define mix lerp
@@ -557,7 +561,9 @@ vec3 SampleScreen( vec3 vUVW )
       
     vec2 vTextureUV = vUVW.xy;
     //vec2 vTextureUV = vPixelCoord;
+#ifdef LIMIT_RESOLUTION    
     vTextureUV = floor(vTextureUV * vResolution * 2.0) / (vResolution * 2.0f);
+#endif    
     
     Interference interference = GetInterference( vTextureUV );
 
@@ -962,7 +968,7 @@ CameraState GetCameraPosition( int index )
     	index = (int)((uint)index % 10);
     }
 
-    //index=2;
+    //index=7;
     
     if ( index == 0 )
     {
@@ -1026,6 +1032,14 @@ CameraState GetCameraPosition( int index )
         cam.vTarget = vec3(-0.1,0.25,0.1);
         cam.fFov = 12.0;
     }
+
+    // 
+#ifdef NO_OVERLAY
+    cam.vPos = vec3(0.0,0.25,-0.4);
+    cam.vTarget = vec3(0.0,0.25,0.1);
+    vFocus = cam.vTarget; 
+    cam.fFov = 23.0;    
+#endif    
     
     cam.fPlaneInFocus = length( vFocus - cam.vPos);
     cam.vJitter = vec2(0.0,0.0);        
@@ -1163,11 +1177,13 @@ float4 main(float4 pos : SV_POSITION, float2 tex : TEXCOORD) : SV_TARGET
 
     mainImage( result, uv * Resolution );
 
+#ifndef NO_OVERLAY
     float4 shadowCol = shaderTexture.Sample(samplerState, tex-(1.0/320.0));
     result.rgb = lerp( result.rgb, float3(0,0,0), shadowCol.a );
 
     float4 color = shaderTexture.Sample(samplerState, tex);
     result.rgb = lerp( result.rgb, color.rgb, color.a );
+#endif    
 
     return result;
 }
